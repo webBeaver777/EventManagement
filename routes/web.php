@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::view('/admin/login', 'admin.auth.login')->name('admin.login');
 Route::view('/admin/register', 'admin.auth.register')->name('admin.register');
 
-// Главная админки → редирект на события
+// Главная админки → редиректы (в реальных проекатах так не делаю :)
 Route::redirect('/', '/admin/events')->name('admin.home');
 Route::redirect('/admin', '/admin/events')->name('admin.home');
 

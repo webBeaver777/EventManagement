@@ -1,9 +1,12 @@
 export async function apiFetch(url, options = {}) {
+    const isAuthPage = window.location.pathname.startsWith('/admin/login') || window.location.pathname.startsWith('/admin/register');
     if (!url.includes('/login') && !url.includes('/register')) {
         const token = sessionStorage.getItem('auth_token');
         if (!token) {
             sessionStorage.removeItem('auth_token');
-            window.location.href = '/admin/login';
+            if (!isAuthPage) {
+                window.location.href = '/admin/login';
+            }
             throw new Error('Not authenticated');
         }
         const check = await fetch('/api/check-token', {
@@ -11,7 +14,9 @@ export async function apiFetch(url, options = {}) {
         });
         if (!check.ok) {
             sessionStorage.removeItem('auth_token');
-            window.location.href = '/admin/login';
+            if (!isAuthPage) {
+                window.location.href = '/admin/login';
+            }
             throw new Error('Token invalid');
         }
         options.headers = options.headers || {};

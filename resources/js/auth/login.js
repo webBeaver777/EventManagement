@@ -18,7 +18,11 @@ $(function() {
         })
         .then(res => res.json())
         .then(response => {
-            let token = response.extra && response.extra.token ? response.extra.token : (response.token ? response.token : null);
+            let token = null;
+            if (response.extra && response.extra.token) token = response.extra.token;
+            else if (response.token) token = response.token;
+            else if (response.result && response.result.token) token = response.result.token;
+            else if (response.data && response.data.token) token = response.data.token;
             if (token) {
                 sessionStorage.setItem('auth_token', token);
                 window.location.href = '/admin/events/';
