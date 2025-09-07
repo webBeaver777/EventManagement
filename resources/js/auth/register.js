@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import { showPopup } from '../vendor/popup';
 import flatpickr from '../vendor/flatpickr';
 import { apiFetch } from '../auth/api';
@@ -5,12 +6,29 @@ import { apiFetch } from '../auth/api';
 $(function() {
     const registerForm = $('#registerForm');
     if (!registerForm.length) return;
-    if ($('#birth_date').length && typeof flatpickr === 'function') {
+    // Инициализация flatpickr
+    if ($('#birth_date').length) {
         flatpickr('#birth_date', {
             dateFormat: 'Y-m-d',
             maxDate: 'today',
             allowInput: false
         });
+    }
+    function extractToken(response) {
+        if (response.extra && response.extra.token) return response.extra.token;
+        if (response.token) return response.token;
+        if (response.result && response.result.token) return response.result.token;
+        if (response.data && response.data.token) return response.data.token;
+        return null;
+    }
+    function extractErrorMsg(response) {
+        if (response.errors && typeof response.errors === 'object') {
+            // Laravel validation errors
+            return Object.values(response.errors).flat().join('\n');
+        }
+        if (response.error) return response.error;
+        if (response.message) return response.message;
+        return 'Ошибка регистрации';
     }
     registerForm.on('submit', function(e) {
         e.preventDefault();
@@ -29,13 +47,12 @@ $(function() {
         })
         .then(res => res.json())
         .then(response => {
-            let token = response.extra && response.extra.token ? response.extra.token : (response.token ? response.token : null);
+            const token = extractToken(response);
             if (token) {
                 sessionStorage.setItem('auth_token', token);
                 window.location.href = '/admin/events/';
             } else {
-                let msg = (response.error) ? response.error : (response.message || 'Ошибка регистрации');
-                showPopup(msg);
+                showPopup(extractErrorMsg(response));
             }
         })
         .catch(err => {
