@@ -28,12 +28,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Event whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Event whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Event whereUpdatedAt($value)
+ * @method static \Database\Factories\EventFactory factory($count = null, $state = [])
  *
  * @mixin \Eloquent
  */
 class Event extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'title', 'description', 'creator_id',
     ];
