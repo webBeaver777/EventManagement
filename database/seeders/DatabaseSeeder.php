@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Event;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -12,9 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $users = User::factory(10)->create();
+
+        foreach ($users as $user) {
+            Event::factory(2)->create([
+                'creator_id' => $user->id,
+            ]);
+        }
     }
 }

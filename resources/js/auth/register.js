@@ -6,7 +6,6 @@ import { apiFetch } from '../auth/api';
 $(function() {
     const registerForm = $('#registerForm');
     if (!registerForm.length) return;
-    // Инициализация flatpickr
     if ($('#birth_date').length) {
         flatpickr('#birth_date', {
             dateFormat: 'Y-m-d',

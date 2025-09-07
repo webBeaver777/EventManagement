@@ -21,19 +21,19 @@
                 <p class="register-box-msg">Регистрация</p>
                 <form id="registerForm">
                     <div class="input-group mb-3">
-                        <input type="text" name="login" class="form-control" placeholder="Логин" required>
+                        <input type="text" name="login" class="form-control" placeholder="Логин">
                         <div class="input-group-text"><i class="bi bi-person-badge"></i></div>
                     </div>
                     <div class="input-group mb-3">
-                        <input type="text" name="first_name" class="form-control" placeholder="Имя" required>
+                        <input type="text" name="first_name" class="form-control" placeholder="Имя">
                         <div class="input-group-text"><i class="bi bi-person"></i></div>
                     </div>
                     <div class="input-group mb-3">
-                        <input type="text" name="last_name" class="form-control" placeholder="Фамилия" required>
+                        <input type="text" name="last_name" class="form-control" placeholder="Фамилия">
                         <div class="input-group-text"><i class="bi bi-person"></i></div>
                     </div>
                     <div class="input-group mb-3">
-                        <input type="password" name="password" class="form-control" placeholder="Пароль" required>
+                        <input type="password" name="password" class="form-control" placeholder="Пароль">
                         <div class="input-group-text"><i class="bi bi-lock"></i></div>
                     </div>
                     <div class="input-group mb-3">
