@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\User\UserAuthFailedException;
+use App\Exceptions\User\UserNotFoundException;
 use App\Http\Requests\UserLoginRequest;
 use App\Http\Requests\UserRegisterRequest;
 use App\Http\Responses\ApiResponse;
@@ -20,34 +22,43 @@ class UserController extends Controller
     public function register(UserRegisterRequest $request): JsonResponse
     {
         $user = $this->userService->register($request->validated());
-
         $token = $user->createToken('api_token')->plainTextToken;
 
-        return ApiResponse::success([
-            'id' => $user->id,
-            'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
-            'login' => $user->login,
-            'birth_date' => $user->birth_date,
-        ], ['token' => $token]);
+        return ApiResponse::success($this->userService->formatUserWithToken($user, $token));
+    }
+
+    public function me(): JsonResponse
+    {
+        try {
+            $result = $this->userService->getFormattedAuthenticatedUser();
+        } catch (UserNotFoundException $e) {
+            return ApiResponse::error($e->getMessage(), $e->getCode());
+        }
+
+        return ApiResponse::success($result);
     }
 
     public function login(UserLoginRequest $request): JsonResponse
     {
         $credentials = $request->only('login', 'password');
-        $user = $this->userService->login($credentials);
-
-        if (! $user) {
-            return ApiResponse::error('Неверный логин или пароль', 401);
+        try {
+            $user = $this->userService->login($credentials);
+        } catch (UserAuthFailedException $e) {
+            return ApiResponse::error($e->getMessage(), $e->getCode());
         }
-
         $token = $user->createToken('api_token')->plainTextToken;
 
-        return ApiResponse::success([
-            'id' => $user->id,
-            'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
-            'login' => $user->login,
-        ], ['token' => $token]);
+        return ApiResponse::success($this->userService->formatUserWithToken($user, $token));
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        try {
+            $result = $this->userService->getFormattedUserById($id);
+        } catch (UserNotFoundException $e) {
+            return ApiResponse::error($e->getMessage(), $e->getCode());
+        }
+
+        return ApiResponse::success($result);
     }
 }

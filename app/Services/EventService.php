@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Exceptions\Event\AlreadyJoinedException;
+use App\Exceptions\Event\EventNotFoundException;
+use App\Exceptions\Event\ForbiddenException;
+use App\Exceptions\Event\NotParticipantException;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -9,11 +13,6 @@ use Illuminate\Support\Facades\Auth;
 
 class EventService
 {
-    public function getEvents(): Collection
-    {
-        return Event::with(['creator', 'participants'])->get();
-    }
-
     public function createEvent(array $data): Event
     {
         $event = Event::create([
@@ -27,54 +26,83 @@ class EventService
         return $event->fresh(['creator', 'participants']);
     }
 
-    public function joinEvent(Event $event): bool|string
+    /**
+     * @throws EventNotFoundException
+     */
+    public function showEvent($id): Event
     {
-        if ($event->participants()
-            ->where('user_id', Auth::id())
-            ->exists()) {
+        $event = Event::with(['creator', 'participants'])->find($id);
+        if (! $event) {
+            throw new EventNotFoundException;
+        }
 
-            return 'already_joined';
+        return $event;
+    }
+
+    /**
+     * @throws AlreadyJoinedException
+     * @throws EventNotFoundException
+     */
+    public function joinEventById($id): void
+    {
+        $event = Event::with('participants')->find($id);
+        if (! $event) {
+            throw new EventNotFoundException;
+        }
+        if ($event->participants()->where('user_id', Auth::id())->exists()) {
+            throw new AlreadyJoinedException;
         }
         $event->participants()->attach(Auth::id());
-
-        return true;
     }
 
-    public function leaveEvent(Event $event): bool|string
+    /**
+     * @throws NotParticipantException
+     * @throws EventNotFoundException
+     */
+    public function leaveEventById($id): void
     {
+        $event = Event::with('participants')->find($id);
+        if (! $event) {
+            throw new EventNotFoundException;
+        }
         if (! $event->participants->contains(Auth::id())) {
-            return 'not_participant';
+            throw new NotParticipantException;
         }
         $event->participants()->detach(Auth::id());
-
-        return true;
     }
 
-    public function deleteEvent(Event $event): bool|string
+    /**
+     * @throws EventNotFoundException
+     * @throws ForbiddenException
+     */
+    public function deleteEventById($id): void
     {
+        $event = Event::find($id);
+        if (! $event) {
+            throw new EventNotFoundException;
+        }
         if ($event->creator_id !== Auth::id()) {
-            return 'forbidden';
+            throw new ForbiddenException;
         }
         $event->participants()->detach();
         $event->delete();
-
-        return true;
     }
 
-    public function formatUser($user): array
+    public function getMyEvents(): Collection
     {
-        if (! $user instanceof User) {
-            return [
-                'id' => null,
-                'first_name' => null,
-                'last_name' => null,
-            ];
-        }
+        $userId = Auth::id();
 
+        return Event::with(['creator', 'participants'])
+            ->whereHas('participants', fn ($q) => $q->where('users.id', $userId))
+            ->get();
+    }
+
+    private function formatUser(?User $user): array
+    {
         return [
-            'id' => $user->id,
-            'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
+            'id' => $user?->id,
+            'first_name' => $user?->first_name,
+            'last_name' => $user?->last_name,
         ];
     }
 
@@ -93,5 +121,35 @@ class EventService
                 return $this->formatUser($user);
             })->all(),
         ];
+    }
+
+    private function formatEvents(Collection $events): array
+    {
+        return $events
+            ->map(fn ($event) => $this->formatEvent($event))
+            ->values()
+            ->toArray();
+    }
+
+    public function getFormattedEvents(): array
+    {
+        $events = Event::with(['creator', 'participants'])->get();
+
+        return $this->formatEvents($events);
+    }
+
+    /**
+     * @throws EventNotFoundException
+     */
+    public function getFormattedEventById($id): array
+    {
+        $event = $this->showEvent($id);
+
+        return $this->formatEvent($event);
+    }
+
+    public function getMyFormattedEvents(): array
+    {
+        return $this->formatEvents($this->getMyEvents());
     }
 }

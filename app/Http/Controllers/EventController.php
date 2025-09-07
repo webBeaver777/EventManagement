@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\Event\AlreadyJoinedException;
+use App\Exceptions\Event\EventNotFoundException;
+use App\Exceptions\Event\ForbiddenException;
+use App\Exceptions\Event\NotParticipantException;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Responses\ApiResponse;
-use App\Models\Event;
 use App\Services\EventService;
 use Illuminate\Http\JsonResponse;
 
@@ -19,12 +22,7 @@ class EventController extends Controller
 
     public function index(): JsonResponse
     {
-        $events = $this->eventService->getEvents();
-        $result = $events->map(fn ($event) => $this->eventService->formatEvent($event))
-            ->values()
-            ->toArray();
-
-        return ApiResponse::success($result);
+        return ApiResponse::success($this->eventService->getFormattedEvents());
     }
 
     public function store(EventStoreRequest $request): JsonResponse
@@ -34,36 +32,54 @@ class EventController extends Controller
         return ApiResponse::success($this->eventService->formatEvent($event));
     }
 
+    public function show($id): JsonResponse
+    {
+        try {
+            $result = $this->eventService->getFormattedEventById($id);
+
+            return ApiResponse::success($result);
+        } catch (EventNotFoundException $e) {
+            return ApiResponse::error($e->getMessage(), $e->getCode());
+        }
+    }
+
     public function join($id): JsonResponse
     {
-        $event = Event::with('participants')->findOrFail($id);
-        $result = $this->eventService->joinEvent($event);
-        if ($result === 'already_joined') {
-            return ApiResponse::error('Вы уже участвуете в этом событии', 409);
-        }
+        try {
+            $this->eventService->joinEventById($id);
 
-        return ApiResponse::success('joined');
+            return ApiResponse::success('joined');
+        } catch (EventNotFoundException|AlreadyJoinedException $e) {
+            return ApiResponse::error($e->getMessage(), $e->getCode());
+        }
     }
 
     public function leave($id): JsonResponse
     {
-        $event = Event::with('participants')->findOrFail($id);
-        $result = $this->eventService->leaveEvent($event);
-        if ($result === 'not_participant') {
-            return ApiResponse::error('Вы не являетесь участником события', 409);
-        }
+        try {
+            $this->eventService->leaveEventById($id);
 
-        return ApiResponse::success('leave');
+            return ApiResponse::success('leave');
+        } catch (EventNotFoundException|NotParticipantException $e) {
+            return ApiResponse::error($e->getMessage(), $e->getCode());
+        }
+    }
+
+    public function myEvents(): JsonResponse
+    {
+        return ApiResponse::success(
+            $this->eventService->getMyFormattedEvents()
+        );
     }
 
     public function destroy($id): JsonResponse
     {
-        $event = Event::findOrFail($id);
-        $result = $this->eventService->deleteEvent($event);
-        if ($result === 'forbidden') {
-            return ApiResponse::error('Нет прав на удаление', 403);
-        }
+        try {
+            $this->eventService->deleteEventById($id);
 
-        return ApiResponse::success('deleted');
+            return ApiResponse::success('deleted');
+        } catch (EventNotFoundException|ForbiddenException $e) {
+            return ApiResponse::error($e->getMessage(), $e->getCode());
+        }
     }
 }
